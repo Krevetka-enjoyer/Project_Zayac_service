@@ -1,0 +1,16 @@
+project-name: userver-mongo
+project-alt-names:
+  - yandex-userver-mongo
+maintainers:
+  - Common components
+description: MongoDB serialization helpers
+
+libraries:
+  - bson-1.0
+  - mongoc-1.0
+  - userver-core
+
+configs:
+    names:
+      - MONGO_DEADLINE_PROPAGATION_ENABLED
+      - MONGO_DEFAULT_MAX_TIME_MS

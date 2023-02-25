@@ -1,0 +1,105 @@
+# yaml
+
+config_vars: /root/.local/etc/Project_Zayac/config_vars.yaml
+
+components_manager:
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+ 
+    task_processors:                  # Task processor is an executor for coroutine tasks
+ 
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+ 
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+ 
+    default_task_processor: main-task-processor
+ 
+    components:  
+
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080           # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+ 
+        tracer:                           # Component that helps to trace execution times and requests in logs.
+            service-name: my_rabbit   # "You know. You all know exactly who I am. Say my name. " (c)
+ 
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /root/.local/etc/Project_Zayac/dynamic_config_fallback.json
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        users_informator:
+            path: /Users
+            task_processor: main-task-processor
+            method: GET,POST
+
+        user_informator:
+            path: /Users/{name}
+            task_processor: main-task-processor
+            method: GET
+
+        ispolnitel:
+            path: /messages
+            task_processor: main-task-processor
+            method: POST
+        
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: userver testsuite
+           
+        rabbit_sender:
+            secdist_alias: my-rabbit-alias
+            min_pool_size: 5
+            max_pool_size: 10
+            max_in_flight_requests: 5
+            use_secure_connection: false
+        
+        rabbit-consumer:
+            rabbit_name: rabbit_sender
+            queue: response
+            prefetch_count: 5
+        
+        commands_db:
+            dbconnection: 'postgresql://iogurt:1234@postgres:5432/commands_db'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+        
+        pg-worker:
+            cluster: commands_db
+            table: distlocks
+            lockname: rearmer
+            pg-timeout: 60s
+            lock-ttl: 240s
+            autostart: true
+        
+        secdist: {}                                           # Component that stores configuration of hosts and passwords
+        default-secdist-provider:                                              # Component that stores configuration of hosts and passwords
+            config: /root/.local/etc/Project_Zayac/secure_data.json    
+            missing-ok: true                                  # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG
+            
+        tests-control:
+            load-enabled: $testsuite-enabled
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 60s
+            testpoint-url: mockserver/testpoint
+            throttling_enabled: false
+
+        testsuite-support:

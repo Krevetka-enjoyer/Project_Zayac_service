@@ -1,0 +1,65 @@
+version: "2.3"
+
+services:
+    postgres:
+        image: postgres:12
+        restart: on-failure
+        environment:
+          POSTGRES_USER: iogurt
+          POSTGRES_PASSWORD: 1234
+          POSTGRES_DB: commands_db
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U iogurt -d commands_db"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+        ports:
+          - 5432:5432
+
+    rabbitmq:
+        image: rabbitmq:3.9-management
+        hostname: rabbitmq
+        healthcheck:
+          test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+        ports:
+          - 5672:5672
+          - 15672:15672
+        volumes:
+          - rabbitmq_data:/var/lib/rabbitmq/
+          - rabbitmq_log:/var/log/rabbitmq/
+         
+    Project_Zayac-container:
+        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
+        privileged: true
+        environment:
+          - PREFIX=${PREFIX:-~/.local}
+          - CC
+          - CCACHE_DIR=/Project_Zayac/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS
+          - CORES_DIR=/cores
+          - CXX
+          - MAKE_OPTS
+        volumes:
+          - .:/Project_Zayac:rw
+          - ./third_party/userver/tools/docker:/tools:ro
+        ports:
+          - 8080:8080
+        depends_on:
+          rabbitmq:
+            condition: service_healthy
+          postgres:
+            condition: service_healthy
+        working_dir: /Project_Zayac
+        command: ["make", "--" ,"--in-docker-start-release"]
+        
+volumes:
+    rabbitmq_data:
+    rabbitmq_log:  
+

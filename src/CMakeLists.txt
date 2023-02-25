@@ -1,0 +1,10 @@
+project(Project_Zayac CXX)
+add_executable(${PROJECT_NAME} "zayac.cpp")
+add_library(RabComp RabComp.h RabComp.cpp)
+target_link_libraries(RabComp userver-core userver-rabbitmq userver-postgresql)
+add_library(Api Api.h Api.cpp)
+target_link_libraries(Api userver-core userver-rabbitmq userver-postgresql)
+add_library(lock lock.h lock.cpp)
+target_link_libraries(lock userver-core userver-rabbitmq userver-postgresql)
+target_link_libraries(${PROJECT_NAME} RabComp Api lock userver-core userver-rabbitmq userver-postgresql)
+

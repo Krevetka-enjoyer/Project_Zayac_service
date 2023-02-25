@@ -1,0 +1,10 @@
+project-name: userver-grpc
+project-alt-names:
+  - yandex-userver-grpc
+maintainers:
+  - Common components
+description: Userver component for gRPC protocol
+
+libraries:
+  - Boost::regex
+  - userver-core
